@@ -11,6 +11,7 @@ data class HourlyData(
     val time: List<String>,
     val temperature_2m: List<Double>,
     val relative_humidity_2m: List<Int>,
+    val precipitation_probability: List<Int>,
     val wind_speed_10m: List<Float>,
     val cloud_cover: List<Int>
 )

@@ -44,6 +44,7 @@ class WeatherViewModel : ViewModel() {
                                     minTemp = "${hourlyData.temperature_2m.minOrNull()}°C",
                                     maxTemp = "${hourlyData.temperature_2m.maxOrNull()}°C",
                                     humidity = "${hourlyData.relative_humidity_2m.getOrNull(index) ?: "N/A"} %",
+                                    precipitationProbability = hourlyData.precipitation_probability.getOrNull(index) ?: 0,
                                     windSpeed = "${hourlyData.wind_speed_10m.getOrNull(index) ?: "N/A"} km/h",
                                     cloudCover = "${hourlyData.cloud_cover.getOrNull(index) ?: "N/A"}"
                                 )
@@ -124,7 +125,7 @@ data class WeatherForecast(
     val minTemp: String,
     val maxTemp: String,
     val humidity: String,
-    //val precipitation: String,
+    val precipitationProbability: Int,
     val windSpeed: String,
     val cloudCover: String,
 )

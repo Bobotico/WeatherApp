@@ -3,6 +3,7 @@ package com.bobot.termoapp
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -123,7 +124,7 @@ fun MainScreen(
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        WeatherCard(it, viewModel, closestForecast.time)
+                        WeatherCard(it, closestForecast.time)
                     }
                 }
             }
@@ -161,9 +162,8 @@ fun MainScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(weatherList) { weatherForecaster ->
-                                    WeatherCard(
+                                    ContractedWeatherCard(
                                         weatherForecaster,
-                                        viewModel,
                                         weatherForecaster.time
                                     )
                                 }
@@ -179,22 +179,70 @@ fun MainScreen(
 // Define a function to get the appropriate icon based on cloud cover percentage
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun getCloudCoverIcon(cloudCover: Int, forecastTime: LocalTime): Pair<Painter, String> {
+fun getCloudCoverIcon(
+    cloudCover: Int,
+    forecastTime: LocalTime,
+    weatherForecast: WeatherForecast,
+): Pair<Painter, String> {
     val isNight = isNight(forecastTime)
+    val isRaining = isRaining(weatherForecast)
 
     return when {
-        cloudCover < 25 -> if (isNight) {
-            Pair(painterResource(id = R.drawable.ic_night), "Sunny (Night)")
-        } else {
-            Pair(painterResource(id = R.drawable.ic_sunny), "Sunny")
+        // Case for less than 25% cloud cover
+        cloudCover < 25 -> {
+            if (isNight) {
+                Pair(painterResource(id = R.drawable.ic_night), "Clear night")
+            } else {
+                Pair(painterResource(id = R.drawable.ic_sunny), "Sunny")
+            }
         }
-        cloudCover in 25..50 -> if (isNight) {
-            Pair(painterResource(id = R.drawable.ic_partly_cloudy_night), "Partly Cloudy (Night)")
-        } else {
-            Pair(painterResource(id = R.drawable.ic_partly_cloudy), "Partly Cloudy")
+
+        // Case for 25% to 50% cloud cover
+        cloudCover in 25..50 -> {
+            if (isRaining) {
+                if (isNight) {
+                    Pair(
+                        painterResource(id = R.drawable.ic_partly_cloudy_rainy_night),
+                        "Partly cloudy and rainy night"
+                    )
+                } else {
+                    Pair(
+                        painterResource(id = R.drawable.ic_partly_cloudy_rainy),
+                        "Partly cloudy with rain"
+                    )
+                }
+            } else {
+                if (isNight) {
+                    Pair(
+                        painterResource(id = R.drawable.ic_partly_cloudy_night),
+                        "Partly cloudy night"
+                    )
+                } else {
+                    Pair(painterResource(id = R.drawable.ic_partly_cloudy), "Partly cloudy")
+                }
+            }
         }
-        cloudCover in 51..75 -> Pair(painterResource(id = R.drawable.ic_cloudy), "Cloudy")
-        else -> Pair(painterResource(id = R.drawable.ic_fully_cloudy), "Fully Cloudy")
+
+        // Case for 51% to 75% cloud cover
+        cloudCover in 51..75 -> {
+            if (isRaining) {
+                Pair(painterResource(id = R.drawable.ic_cloudy_rainy), "Cloudy with rain")
+            } else {
+                Pair(painterResource(id = R.drawable.ic_cloudy), "Cloudy")
+            }
+        }
+
+        // Case for more than 75% cloud cover
+        else -> {
+            if (isRaining) {
+                Pair(
+                    painterResource(id = R.drawable.ic_fully_cloudy_rainy),
+                    "Fully cloudy with rain"
+                )
+            } else {
+                Pair(painterResource(id = R.drawable.ic_fully_cloudy), "Fully cloudy")
+            }
+        }
     }
 }
 
@@ -213,14 +261,24 @@ fun isNight(forecastTime: LocalTime): Boolean {
 }
 
 @RequiresApi(Build.VERSION_CODES.O)
+fun isRaining(weatherForecast: WeatherForecast): Boolean {
+    Log.d("Debug", "Precipitation probability: ${weatherForecast.precipitationProbability}")
+    // Assuming weatherForecast has a precipitation field which is a percentage
+    return weatherForecast.precipitationProbability > 80 // Consider it raining if precipitation is over 80%
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun WeatherCard(
     weatherForecast: WeatherForecast,
-    weatherViewModel: WeatherViewModel,
     timeString: String,
 ) {
     val forecastTime = parseTime(timeString)
-    val (cloudCoverIcon, cloudCoverDescription) = getCloudCoverIcon(weatherForecast.cloudCover.toInt(), forecastTime)
+    val (cloudCoverIcon, cloudCoverDescription) = getCloudCoverIcon(
+        weatherForecast.cloudCover.toInt(),
+        forecastTime,
+        weatherForecast
+    )
 
     Card(
         modifier = Modifier
@@ -229,9 +287,78 @@ fun WeatherCard(
     ) {
         Column(
             modifier = Modifier
-                .padding(16.dp),
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            Row (
+                modifier = Modifier.fillMaxWidth()
+            ){
+                // Cloud Cover
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                // Icon
+                                Image(
+                                    painter = cloudCoverIcon,
+                                    contentDescription = "Wind speed icon",
+                                    modifier = Modifier
+                                        .size(64.dp) // Set the size of the image
+                                        .padding(4.dp), // Optional padding around the image
+                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                                )
+                                // Entitlement
+                                Text(
+                                    cloudCoverDescription,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                // Value
+                                Text(
+                                    weatherForecast.cloudCover,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Text aligned to the start
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        /*Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Date: ",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            weatherForecast.date,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }*/
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                weatherForecast.time,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                    }
+                }
+            }
+
             // Temperature Row.
             Row(
                 verticalAlignment = Alignment.CenterVertically
@@ -239,6 +366,15 @@ fun WeatherCard(
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Icon
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_temperature),
+                        contentDescription = "Temperature icon",
+                        modifier = Modifier
+                            .size(24.dp), // Set the size of the image
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    )
+
                     // Temperature
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
@@ -276,60 +412,15 @@ fun WeatherCard(
                             )
                         }
                     }
-
-                    // Icon
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_temperature),
-                        contentDescription = "Temperature icon",
-                        modifier = Modifier
-                            .size(64.dp) // Set the size of the image
-                            .padding(4.dp), // Optional padding around the image
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                    )
                 }
             }
 
             // Row Humidity and WindSpeed
             Row(
                 horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 16.dp)
             ) {
-                // Cloud Cover
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.padding(16.dp)
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row() {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                            ) {
-                                // Icon
-                                Image(
-                                    painter = cloudCoverIcon,
-                                    contentDescription = "Wind speed icon",
-                                    modifier = Modifier
-                                        .size(64.dp) // Set the size of the image
-                                        .padding(4.dp), // Optional padding around the image
-                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                                )
-                                // Entitlement
-                                Text(
-                                    cloudCoverDescription,
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                                // Value
-                                Text(
-                                    weatherForecast.cloudCover,
-                                    style = MaterialTheme.typography.bodySmall
-                                )
-                            }
-                        }
-                    }
-                }
-
                 // Humidity
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -382,37 +473,6 @@ fun WeatherCard(
                     )
                 }
             }
-
-            // Text aligned to the start
-            Box(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.Start
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Date: ",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            weatherForecast.date,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Time: ",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            weatherForecast.time,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -434,6 +494,162 @@ fun DailyWeatherCard(dailyForecast: DailyWeatherForecast) {
             // New content
             //Text("Sunrise: ${dailyForecast.sunrise}", style = MaterialTheme.typography.bodySmall)
             //Text("Sunset: ${dailyForecast.sunset}", style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun ContractedWeatherCard(
+    weatherForecast: WeatherForecast,
+    timeString: String,
+) {
+    val forecastTime = parseTime(timeString)
+    val (cloudCoverIcon, cloudCoverDescription) = getCloudCoverIcon(
+        weatherForecast.cloudCover.toInt(),
+        forecastTime,
+        weatherForecast
+    )
+
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row (
+                modifier = Modifier.fillMaxWidth()
+            ){
+                // Cloud Cover
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                // Icon
+                                Image(
+                                    painter = cloudCoverIcon,
+                                    contentDescription = "Wind speed icon",
+                                    modifier = Modifier
+                                        .size(64.dp) // Set the size of the image
+                                        .padding(4.dp), // Optional padding around the image
+                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Text aligned to the start
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        /*Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            "Date: ",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            weatherForecast.date,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }*/
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                weatherForecast.time,
+                                style = MaterialTheme.typography.titleLarge
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Temperature Row.
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Icon
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_temperature),
+                        contentDescription = "Temperature icon",
+                        modifier = Modifier
+                            .size(24.dp), // Set the size of the image
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    )
+
+                    // Temperature
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        // Current Temp
+                        Text(
+                            weatherForecast.temperature,
+                            style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
+                        )
+                    }
+                }
+            }
+
+            // Row Humidity and WindSpeed
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                // Humidity
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    // Tile
+                    Text(
+                        "Humidity",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    // Value
+                    Text(
+                        weatherForecast.humidity,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                // Wind Speed
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    // Tile
+                    Text(
+                        "Wind Speed",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    // Value
+                    Text(
+                        weatherForecast.windSpeed,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
         }
     }
 }
