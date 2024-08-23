@@ -9,7 +9,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,12 +17,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -34,17 +30,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import com.bobot.termoapp.ui.theme.TermoAppTheme
+import com.bobot.termoapp.viewmodels.DailyWeatherForecast
 import com.bobot.termoapp.viewmodels.WeatherForecast
-import com.bobot.termoapp.viewmodels.WeatherParameter
 import com.bobot.termoapp.viewmodels.WeatherViewModel
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -57,7 +54,11 @@ class MainActivity : ComponentActivity() {
             // Permission granted, proceed to fetch weather data
             fetchWeatherData()
         } else {
-            Toast.makeText(this, "Permission denied. Cannot access weather data.", Toast.LENGTH_LONG).show()
+            Toast.makeText(
+                this,
+                "Permission denied. Cannot access weather data.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -90,7 +91,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     activity: MainActivity,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val viewModel = ViewModelProvider(activity)[WeatherViewModel::class.java]
     val weatherData by viewModel.weatherData.collectAsState()
@@ -104,7 +105,7 @@ fun MainScreen(
     // Group weather data by date
     val groupedData = weatherData.groupBy { it.date }
 
-    LazyColumn (
+    LazyColumn(
         Modifier
             .fillMaxSize()
             .padding(16.dp)
@@ -122,7 +123,7 @@ fun MainScreen(
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        WeatherCard(it, viewModel)
+                        WeatherCard(it, viewModel, closestForecast.time)
                     }
                 }
             }
@@ -141,8 +142,12 @@ fun MainScreen(
                             val localDate = LocalDate.parse(date, formatter)
 
                             // Get the day of the week and capitalize the first letter
-                            val dayOfWeek = localDate.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
-                            val capitalizedDayOfWeek = dayOfWeek.replaceFirstChar { it.uppercaseChar() }
+                            val dayOfWeek = localDate.dayOfWeek.getDisplayName(
+                                TextStyle.FULL,
+                                Locale.getDefault()
+                            )
+                            val capitalizedDayOfWeek =
+                                dayOfWeek.replaceFirstChar { it.uppercaseChar() }
 
                             // Display the day of the week as a header
                             Text(
@@ -156,7 +161,11 @@ fun MainScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 items(weatherList) { weatherForecaster ->
-                                    WeatherCard(weatherForecaster, viewModel)
+                                    WeatherCard(
+                                        weatherForecaster,
+                                        viewModel,
+                                        weatherForecaster.time
+                                    )
                                 }
                             }
                         }
@@ -167,49 +176,213 @@ fun MainScreen(
     }
 }
 
+// Define a function to get the appropriate icon based on cloud cover percentage
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun WeatherCard(weatherForecast: WeatherForecast, weatherViewModel: WeatherViewModel) {
-    //val dynamicText =  weatherViewModel.generateDynamicText(weatherParameter)
-    Card(modifier = Modifier
-        .padding(horizontal = 8.dp)
-        .fillMaxWidth()) {
+fun getCloudCoverIcon(cloudCover: Int, forecastTime: LocalTime): Pair<Painter, String> {
+    val isNight = isNight(forecastTime)
+
+    return when {
+        cloudCover < 25 -> if (isNight) {
+            Pair(painterResource(id = R.drawable.ic_night), "Sunny (Night)")
+        } else {
+            Pair(painterResource(id = R.drawable.ic_sunny), "Sunny")
+        }
+        cloudCover in 25..50 -> if (isNight) {
+            Pair(painterResource(id = R.drawable.ic_partly_cloudy_night), "Partly Cloudy (Night)")
+        } else {
+            Pair(painterResource(id = R.drawable.ic_partly_cloudy), "Partly Cloudy")
+        }
+        cloudCover in 51..75 -> Pair(painterResource(id = R.drawable.ic_cloudy), "Cloudy")
+        else -> Pair(painterResource(id = R.drawable.ic_fully_cloudy), "Fully Cloudy")
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun parseTime(timeString: String): LocalTime {
+    val formatter = DateTimeFormatter.ofPattern("HH:mm") // Assuming 24-hour format
+    return LocalTime.parse(timeString, formatter)
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun isNight(forecastTime: LocalTime): Boolean {
+    val eveningStart = LocalTime.of(17, 0) // 6 PM
+    val morningEnd = LocalTime.of(5, 0)    // 6 AM
+
+    return forecastTime.isAfter(eveningStart) || forecastTime.isBefore(morningEnd)
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Composable
+fun WeatherCard(
+    weatherForecast: WeatherForecast,
+    weatherViewModel: WeatherViewModel,
+    timeString: String,
+) {
+    val forecastTime = parseTime(timeString)
+    val (cloudCoverIcon, cloudCoverDescription) = getCloudCoverIcon(weatherForecast.cloudCover.toInt(), forecastTime)
+
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(modifier = Modifier.padding(8.dp)) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+            // Temperature Row.
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row (verticalAlignment = Alignment.CenterVertically) {
+                    // Temperature
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        // Min Temp
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "Min: ",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                weatherForecast.minTemp,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+
+                        // Current Temp
                         Text(
-                            "Min: ",
-                            style = MaterialTheme.typography.bodySmall
+                            weatherForecast.temperature,
+                            style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
                         )
-                        Text(
-                            weatherForecast.minTemp,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+
+                        // Max Temp
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Max: ",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Text(
+                                weatherForecast.maxTemp,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
 
-                    Text(
-                        weatherForecast.temperature,
-                        style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
+                    // Icon
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_temperature),
+                        contentDescription = "Temperature icon",
+                        modifier = Modifier
+                            .size(64.dp) // Set the size of the image
+                            .padding(4.dp), // Optional padding around the image
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
                     )
-
-                    Row (verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Max: ",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            weatherForecast.maxTemp,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
                 }
             }
+
+            // Row Humidity and WindSpeed
+            Row(
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Cloud Cover
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row() {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                            ) {
+                                // Icon
+                                Image(
+                                    painter = cloudCoverIcon,
+                                    contentDescription = "Wind speed icon",
+                                    modifier = Modifier
+                                        .size(64.dp) // Set the size of the image
+                                        .padding(4.dp), // Optional padding around the image
+                                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                                )
+                                // Entitlement
+                                Text(
+                                    cloudCoverDescription,
+                                    style = MaterialTheme.typography.titleSmall
+                                )
+                                // Value
+                                Text(
+                                    weatherForecast.cloudCover,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Humidity
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    // Tile
+                    Text(
+                        "Humidity",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    // Icon
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_humidity),
+                        contentDescription = "Wind speed icon",
+                        modifier = Modifier
+                            .size(32.dp) // Set the size of the image
+                            .padding(4.dp), // Optional padding around the image
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    )
+                    // Value
+                    Text(
+                        weatherForecast.humidity,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+
+                // Wind Speed
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    // Tile
+                    Text(
+                        "Wind Speed",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    // Icon
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_wind_speed),
+                        contentDescription = "Wind speed icon",
+                        modifier = Modifier
+                            .size(32.dp) // Set the size of the image
+                            .padding(4.dp), // Optional padding around the image
+                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    )
+                    // Value
+                    Text(
+                        weatherForecast.windSpeed,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+
             // Text aligned to the start
             Box(
                 modifier = Modifier.fillMaxWidth()
@@ -217,18 +390,7 @@ fun WeatherCard(weatherForecast: WeatherForecast, weatherViewModel: WeatherViewM
                 Column(
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Row (verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Humidity:",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            weatherForecast.humidity,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    Row (verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "Date: ",
                             style = MaterialTheme.typography.titleMedium
@@ -238,7 +400,8 @@ fun WeatherCard(weatherForecast: WeatherForecast, weatherViewModel: WeatherViewM
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    Row (verticalAlignment = Alignment.CenterVertically) {
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             "Time: ",
                             style = MaterialTheme.typography.titleMedium
@@ -250,6 +413,27 @@ fun WeatherCard(weatherForecast: WeatherForecast, weatherViewModel: WeatherViewM
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun DailyWeatherCard(dailyForecast: DailyWeatherForecast) {
+    Card(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+            .fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Existing content...
+
+            // New content
+            //Text("Sunrise: ${dailyForecast.sunrise}", style = MaterialTheme.typography.bodySmall)
+            //Text("Sunset: ${dailyForecast.sunset}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -12,7 +12,7 @@ data class HourlyData(
     val temperature_2m: List<Double>,
     val relative_humidity_2m: List<Int>,
     val wind_speed_10m: List<Float>,
-    val pressure_msl: List<Double>
+    val cloud_cover: List<Int>
 )
 
 data class DailyData(
