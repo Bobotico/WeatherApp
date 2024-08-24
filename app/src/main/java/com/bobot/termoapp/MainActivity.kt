@@ -1,6 +1,7 @@
 package com.bobot.termoapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -13,6 +14,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -36,7 +38,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
 import com.bobot.termoapp.ui.theme.TermoAppTheme
-import com.bobot.termoapp.viewmodels.DailyWeatherForecast
 import com.bobot.termoapp.viewmodels.WeatherForecast
 import com.bobot.termoapp.viewmodels.WeatherViewModel
 import java.time.LocalDate
@@ -71,15 +72,20 @@ class MainActivity : ComponentActivity() {
         viewModel.fetchWeather(latitude, longitude)
     }
 
+    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 
+        val latitude = intent.getDoubleExtra("latitude", 0.0)
+        val longitude = intent.getDoubleExtra("longitude", 0.0)
+        val cityName = intent.getStringExtra("cityName") ?: "Unknown City"
+
         setContent {
             TermoAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen(this@MainActivity, modifier = Modifier.padding(innerPadding))
+                Scaffold(modifier = Modifier.fillMaxSize()) {
+                    MainScreen(this@MainActivity, cityName, latitude, longitude)
                 }
             }
         }
@@ -90,7 +96,9 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MainScreen(
     activity: MainActivity,
-    modifier: Modifier = Modifier,
+    cityName: String,
+    latitude: Double,
+    longitude: Double,
 ) {
     val viewModel = ViewModelProvider(activity)[WeatherViewModel::class.java]
     val weatherData by viewModel.weatherData.collectAsState()
@@ -122,7 +130,56 @@ fun MainScreen(
                             .fillMaxWidth(),
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        WeatherCard(it, closestForecast.time)
+                        Column {
+                            Row {
+                                // Display the day of the week as a header
+                                Text(
+                                    text = cityName,
+                                    style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                                Spacer(Modifier.weight(1f))
+                                Text(
+                                    text = "${currentDateTime.dayOfMonth}/${currentDateTime.monthValue}/${currentDateTime.year}",
+                                    style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier.padding(8.dp)
+                                )
+                            }
+                            
+                            Row (
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Display the day of the week as a header
+                                Text(
+                                    text = "Lat: ",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                // Display the day of the week as a header
+                                Text(
+                                    text = "$latitude",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+
+                            Row (
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ){
+                                // Display the day of the week as a header
+                                Text(
+                                    text = "Lon: ",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                // Display the day of the week as a header
+                                Text(
+                                    text = "$longitude",
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                            Spacer(modifier = Modifier.padding(8.dp))
+                            WeatherCard(it, closestForecast.time)
+                        }
                     }
                 }
             }
@@ -136,23 +193,52 @@ fun MainScreen(
                             .fillMaxWidth()
                     ) {
                         Column {
-                            // Convert the date string to a LocalDate object
-                            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                            val localDate = LocalDate.parse(date, formatter)
+                            // Define the new date format
+                            val inputFormatter =
+                                DateTimeFormatter.ofPattern("yyyy-MM-dd") // Adjust if needed
+                            val outputFormatter =
+                                DateTimeFormatter.ofPattern("d MMMM, yyyy", Locale.UK) // UK format
+
+                            // Parse the date string into a LocalDate object
+                            val localDate = try {
+                                LocalDate.parse(date, inputFormatter)
+                            } catch (e: Exception) {
+                                // Handle parsing error
+                                LocalDate.now() // Fallback to current date
+                            }
+
+                            // Get today's date and tomorrow's date
+                            val today = LocalDate.now()
+                            val tomorrow = today.plusDays(1)
+
+                            // Determine the prefix for today, tomorrow, or other dates
+                            val datePrefix = when {
+                                localDate.isEqual(today) -> "Today, "
+                                localDate.isEqual(tomorrow) -> "Tomorrow, "
+                                else -> ""
+                            }
 
                             // Get the day of the week and capitalize the first letter
                             val dayOfWeek = localDate.dayOfWeek.getDisplayName(
                                 TextStyle.FULL,
-                                Locale.getDefault()
+                                Locale.UK
                             )
                             val capitalizedDayOfWeek =
                                 dayOfWeek.replaceFirstChar { it.uppercaseChar() }
 
+                            // Format the date
+                            val formattedDate = try {
+                                localDate.format(outputFormatter)
+                            } catch (e: Exception) {
+                                // Handle formatting error
+                                localDate.toString() // Fallback to default ISO format
+                            }
+
                             // Display the day of the week as a header
                             Text(
-                                text = "$capitalizedDayOfWeek $date",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(vertical = 8.dp)
+                                text = "$datePrefix $capitalizedDayOfWeek $formattedDate",
+                                style = MaterialTheme.typography.titleSmall,
+                                modifier = Modifier.padding(8.dp)
                             )
 
                             // Use LazyRow for horizontal scrolling within bounded width
@@ -640,8 +726,12 @@ fun ContractedWeatherCard(
 @Preview(showBackground = true)
 @Composable
 fun MainScreenPreview() {
+    val cityName = "Bari"
+    val latitude = 41.10648753859573
+    val longitude = 16.8779752411189
+
     TermoAppTheme {
-        MainScreen(MainActivity(), Modifier)
+        MainScreen(MainActivity(), cityName, latitude, longitude)
     }
 }
 
