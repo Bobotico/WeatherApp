@@ -64,6 +64,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofitGson)
     implementation(libs.okhttp3)
+    implementation(libs.osmdroid.android)
+    implementation(libs.osmdroid.wms)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

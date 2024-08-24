@@ -1,5 +1,5 @@
 [versions]
-agp = "8.4.1"
+agp = "8.4.2"
 kotlin = "1.9.0"
 coreKtx = "1.13.1"
 junit = "4.13.2"
@@ -7,12 +7,13 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 lifecycleRuntimeKtx = "2.8.4"
 activityCompose = "1.9.1"
-composeBom = "2023.08.00"
+composeBom = "2024.08.00"
 
-daggerHilt = "2.46.1"
+daggerHilt = "2.49"
 retrofit = "2.11.0"
 retrofitGson = "2.9.0"
 okhttp3 = "5.0.0-alpha.2"
+osmdroid = "6.1.14"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -34,6 +35,8 @@ dagger = { group = "com.google.dagger", name = "hilt-android", version.ref = "da
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofitGson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofitGson" }
 okhttp3 = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp3" }
+osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+osmdroid-wms = { group = "org.osmdroid", name = "osmdroid-wms", version.ref = "osmdroid" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

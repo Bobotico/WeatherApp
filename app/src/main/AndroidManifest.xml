@@ -16,8 +16,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TermoApp"
         tools:targetApi="31">
+        <meta-data
+            android:name="org.osmdroid.config"
+            android:resource="@xml/osmdroid_config" />
         <activity
-            android:name=".MainActivity"
+            android:name=".MapActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.TermoApp">
@@ -27,6 +30,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- MainActivity is the main screen after selecting a location -->
+        <activity android:name=".MainActivity" />
     </application>
 
 </manifest>

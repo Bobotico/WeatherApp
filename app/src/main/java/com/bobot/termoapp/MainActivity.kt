@@ -11,7 +11,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -52,8 +51,11 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
+            // Get latitude and longitude from the Intent
+            val latitude = intent.getDoubleExtra("latitude", 41.10649299650251) // default value
+            val longitude = intent.getDoubleExtra("longitude", 16.877975322937075) // default value
             // Permission granted, proceed to fetch weather data
-            fetchWeatherData()
+            fetchWeatherData(latitude, longitude)
         } else {
             Toast.makeText(
                 this,
@@ -63,12 +65,8 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun fetchWeatherData() {
+    private fun fetchWeatherData(latitude: Double, longitude: Double) {
         val viewModel = ViewModelProvider(this)[WeatherViewModel::class.java]
-
-        // Use fixed latitude and longitude for testing
-        val latitude = 41.10649299650251
-        val longitude = 16.877975322937075
 
         viewModel.fetchWeather(latitude, longitude)
     }
@@ -290,11 +288,13 @@ fun WeatherCard(
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row (
+            // Temperature Row.
+            Row(
                 modifier = Modifier.fillMaxWidth()
-            ){
+            ) {
                 // Cloud Cover
                 Column(
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.Start
                 ) {
                     Row(
@@ -318,9 +318,67 @@ fun WeatherCard(
                                     cloudCoverDescription,
                                     style = MaterialTheme.typography.titleSmall
                                 )
-                                // Value
+                                /*// Value
                                 Text(
                                     weatherForecast.cloudCover,
+                                    style = MaterialTheme.typography.bodySmall
+                                )*/
+                            }
+                        }
+                    }
+                }
+
+                Column(
+                    modifier = Modifier.weight(2f),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Icon
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_temperature),
+                            contentDescription = "Temperature icon",
+                            modifier = Modifier
+                                .size(24.dp), // Set the size of the image
+                            colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                        )
+
+                        // Temperature
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(8.dp)
+                        ) {
+                            // Min Temp
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Min: ",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    weatherForecast.minTemp,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+
+                            // Current Temp
+                            Text(
+                                weatherForecast.temperature,
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+
+                            // Max Temp
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Max: ",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    weatherForecast.maxTemp,
                                     style = MaterialTheme.typography.bodySmall
                                 )
                             }
@@ -330,7 +388,7 @@ fun WeatherCard(
 
                 // Text aligned to the start
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.weight(1f),
                     horizontalAlignment = Alignment.End
                 ) {
                     Column(
@@ -353,62 +411,6 @@ fun WeatherCard(
                             Text(
                                 weatherForecast.time,
                                 style = MaterialTheme.typography.titleLarge
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Temperature Row.
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Icon
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_temperature),
-                        contentDescription = "Temperature icon",
-                        modifier = Modifier
-                            .size(24.dp), // Set the size of the image
-                        colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
-                    )
-
-                    // Temperature
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        // Min Temp
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Min: ",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                weatherForecast.minTemp,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-
-                        // Current Temp
-                        Text(
-                            weatherForecast.temperature,
-                            style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
-                        )
-
-                        // Max Temp
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                "Max: ",
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                            Text(
-                                weatherForecast.maxTemp,
-                                style = MaterialTheme.typography.bodySmall
                             )
                         }
                     }
@@ -443,7 +445,7 @@ fun WeatherCard(
                     // Value
                     Text(
                         weatherForecast.humidity,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall.copy(MaterialTheme.colorScheme.primary)
                     )
                 }
 
@@ -469,31 +471,10 @@ fun WeatherCard(
                     // Value
                     Text(
                         weatherForecast.windSpeed,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall.copy(MaterialTheme.colorScheme.primary)
                     )
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun DailyWeatherCard(dailyForecast: DailyWeatherForecast) {
-    Card(
-        modifier = Modifier
-            .padding(horizontal = 8.dp)
-            .fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Existing content...
-
-            // New content
-            //Text("Sunrise: ${dailyForecast.sunrise}", style = MaterialTheme.typography.bodySmall)
-            //Text("Sunset: ${dailyForecast.sunset}", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -505,7 +486,7 @@ fun ContractedWeatherCard(
     timeString: String,
 ) {
     val forecastTime = parseTime(timeString)
-    val (cloudCoverIcon, cloudCoverDescription) = getCloudCoverIcon(
+    val (cloudCoverIcon) = getCloudCoverIcon(
         weatherForecast.cloudCover.toInt(),
         forecastTime,
         weatherForecast
@@ -521,9 +502,9 @@ fun ContractedWeatherCard(
                 .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Row (
+            Row(
                 modifier = Modifier.fillMaxWidth()
-            ){
+            ) {
                 // Cloud Cover
                 Column(
                     horizontalAlignment = Alignment.Start
@@ -533,7 +514,7 @@ fun ContractedWeatherCard(
                     ) {
                         Row {
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
+                                horizontalAlignment = Alignment.Start,
                             ) {
                                 // Icon
                                 Image(
@@ -551,32 +532,23 @@ fun ContractedWeatherCard(
 
                 // Text aligned to the start
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.End
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        /*Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            "Date: ",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            weatherForecast.date,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                    /*Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Date: ",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        weatherForecast.date,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
                     }*/
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                weatherForecast.time,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                        }
-                    }
+                    Text(
+                        weatherForecast.time,
+                        style = MaterialTheme.typography.titleLarge
+                    )
                 }
             }
 
@@ -603,8 +575,18 @@ fun ContractedWeatherCard(
                     ) {
                         // Current Temp
                         Text(
+                            weatherForecast.minTemp,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        // Current Temp
+                        Text(
                             weatherForecast.temperature,
                             style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
+                        )
+                        // Current Temp
+                        Text(
+                            weatherForecast.maxTemp,
+                            style = MaterialTheme.typography.bodySmall
                         )
                     }
                 }
@@ -629,7 +611,7 @@ fun ContractedWeatherCard(
                     // Value
                     Text(
                         weatherForecast.humidity,
-                        style = MaterialTheme.typography.bodyMedium
+                        style = MaterialTheme.typography.bodySmall.copy(MaterialTheme.colorScheme.primary)
                     )
                 }
 
@@ -646,7 +628,7 @@ fun ContractedWeatherCard(
                     // Value
                     Text(
                         weatherForecast.windSpeed,
-                        style = MaterialTheme.typography.bodySmall
+                        style = MaterialTheme.typography.bodySmall.copy(MaterialTheme.colorScheme.primary)
                     )
                 }
             }

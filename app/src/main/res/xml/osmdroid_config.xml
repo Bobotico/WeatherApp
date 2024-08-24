@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<osmdroid-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <userAgentHttpHeader org.osmdroid="OSMNavigator"/>
+</osmdroid-config>
