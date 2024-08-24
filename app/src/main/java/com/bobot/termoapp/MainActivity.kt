@@ -23,12 +23,17 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorFilter
@@ -101,6 +106,8 @@ fun MainScreen(
     longitude: Double,
 ) {
     val viewModel = ViewModelProvider(activity)[WeatherViewModel::class.java]
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
     val weatherData by viewModel.weatherData.collectAsState()
 
     // Get the current date and time
@@ -112,144 +119,166 @@ fun MainScreen(
     // Group weather data by date
     val groupedData = weatherData.groupBy { it.date }
 
-    LazyColumn(
-        Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        if (weatherData.isEmpty()) {
-            item {
-                Text("No weather data available", style = MaterialTheme.typography.bodyLarge)
-            }
-        } else {
-            // Box for the closest forecast to provide bounded width
-            closestForecast?.let {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth(),
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Column {
-                            Row {
-                                // Display the day of the week as a header
-                                Text(
-                                    text = cityName,
-                                    style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                Spacer(Modifier.weight(1f))
-                                Text(
-                                    text = "${currentDateTime.dayOfMonth}/${currentDateTime.monthValue}/${currentDateTime.year}",
-                                    style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary),
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                            }
-                            
-                            Row (
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Display the day of the week as a header
-                                Text(
-                                    text = "Lat: ",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                // Display the day of the week as a header
-                                Text(
-                                    text = "$latitude",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
 
-                            Row (
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ){
-                                // Display the day of the week as a header
-                                Text(
-                                    text = "Lon: ",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
-                                // Display the day of the week as a header
-                                Text(
-                                    text = "$longitude",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
+    // Handle the loading and error state
+    LaunchedEffect(Unit) {
+        try {
+            viewModel.fetchWeather(latitude, longitude)
+            isLoading = false
+        } catch (e: Exception) {
+            errorMessage = "Error fetching weather data"
+            isLoading = false
+        }
+    }
+
+        LazyColumn(
+            Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            if (weatherData.isEmpty()) {
+                item {
+                    CircularProgressIndicator(modifier = Modifier.size(64.dp))
+                }
+            } else {
+                // Box for the closest forecast to provide bounded width
+                closestForecast?.let {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Column {
+                                Row {
+                                    // Display the day of the week as a header
+                                    Text(
+                                        text = cityName,
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            MaterialTheme.colorScheme.primary
+                                        ),
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                    Spacer(Modifier.weight(1f))
+                                    Text(
+                                        text = "${currentDateTime.dayOfMonth}/${currentDateTime.monthValue}/${currentDateTime.year}",
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            MaterialTheme.colorScheme.primary
+                                        ),
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Display the day of the week as a header
+                                    Text(
+                                        text = "Lat: ",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    // Display the day of the week as a header
+                                    Text(
+                                        text = "$latitude",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Display the day of the week as a header
+                                    Text(
+                                        text = "Lon: ",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    // Display the day of the week as a header
+                                    Text(
+                                        text = "$longitude",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                }
+                                Spacer(modifier = Modifier.padding(8.dp))
+                                WeatherCard(it, closestForecast.time)
                             }
-                            Spacer(modifier = Modifier.padding(8.dp))
-                            WeatherCard(it, closestForecast.time)
                         }
                     }
                 }
-            }
 
-            groupedData.forEach { (date, weatherList) ->
-                // Box for all weather data to provide bounded width
-                item {
-                    Row(
-                        modifier = Modifier
-                            .padding(vertical = 8.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Column {
-                            // Define the new date format
-                            val inputFormatter =
-                                DateTimeFormatter.ofPattern("yyyy-MM-dd") // Adjust if needed
-                            val outputFormatter =
-                                DateTimeFormatter.ofPattern("d MMMM, yyyy", Locale.UK) // UK format
+                groupedData.forEach { (date, weatherList) ->
+                    // Box for all weather data to provide bounded width
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .padding(vertical = 8.dp)
+                                .fillMaxWidth()
+                        ) {
+                            Column {
+                                // Define the new date format
+                                val inputFormatter =
+                                    DateTimeFormatter.ofPattern("yyyy-MM-dd") // Adjust if needed
+                                val outputFormatter =
+                                    DateTimeFormatter.ofPattern(
+                                        "d MMMM, yyyy",
+                                        Locale.UK
+                                    ) // UK format
 
-                            // Parse the date string into a LocalDate object
-                            val localDate = try {
-                                LocalDate.parse(date, inputFormatter)
-                            } catch (e: Exception) {
-                                // Handle parsing error
-                                LocalDate.now() // Fallback to current date
-                            }
+                                // Parse the date string into a LocalDate object
+                                val localDate = try {
+                                    LocalDate.parse(date, inputFormatter)
+                                } catch (e: Exception) {
+                                    // Handle parsing error
+                                    LocalDate.now() // Fallback to current date
+                                }
 
-                            // Get today's date and tomorrow's date
-                            val today = LocalDate.now()
-                            val tomorrow = today.plusDays(1)
+                                // Get today's date and tomorrow's date
+                                val today = LocalDate.now()
+                                val tomorrow = today.plusDays(1)
 
-                            // Determine the prefix for today, tomorrow, or other dates
-                            val datePrefix = when {
-                                localDate.isEqual(today) -> "Today, "
-                                localDate.isEqual(tomorrow) -> "Tomorrow, "
-                                else -> ""
-                            }
+                                // Determine the prefix for today, tomorrow, or other dates
+                                val datePrefix = when {
+                                    localDate.isEqual(today) -> "Today, "
+                                    localDate.isEqual(tomorrow) -> "Tomorrow, "
+                                    else -> ""
+                                }
 
-                            // Get the day of the week and capitalize the first letter
-                            val dayOfWeek = localDate.dayOfWeek.getDisplayName(
-                                TextStyle.FULL,
-                                Locale.UK
-                            )
-                            val capitalizedDayOfWeek =
-                                dayOfWeek.replaceFirstChar { it.uppercaseChar() }
+                                // Get the day of the week and capitalize the first letter
+                                val dayOfWeek = localDate.dayOfWeek.getDisplayName(
+                                    TextStyle.FULL,
+                                    Locale.UK
+                                )
+                                val capitalizedDayOfWeek =
+                                    dayOfWeek.replaceFirstChar { it.uppercaseChar() }
 
-                            // Format the date
-                            val formattedDate = try {
-                                localDate.format(outputFormatter)
-                            } catch (e: Exception) {
-                                // Handle formatting error
-                                localDate.toString() // Fallback to default ISO format
-                            }
+                                // Format the date
+                                val formattedDate = try {
+                                    localDate.format(outputFormatter)
+                                } catch (e: Exception) {
+                                    // Handle formatting error
+                                    localDate.toString() // Fallback to default ISO format
+                                }
 
-                            // Display the day of the week as a header
-                            Text(
-                                text = "$datePrefix $capitalizedDayOfWeek $formattedDate",
-                                style = MaterialTheme.typography.titleSmall,
-                                modifier = Modifier.padding(8.dp)
-                            )
+                                // Display the day of the week as a header
+                                Text(
+                                    text = "$datePrefix $capitalizedDayOfWeek $formattedDate",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.padding(8.dp)
+                                )
 
-                            // Use LazyRow for horizontal scrolling within bounded width
-                            LazyRow(
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                items(weatherList) { weatherForecaster ->
-                                    ContractedWeatherCard(
-                                        weatherForecaster,
-                                        weatherForecaster.time
-                                    )
+                                // Use LazyRow for horizontal scrolling within bounded width
+                                LazyRow(
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(weatherList) { weatherForecaster ->
+                                        ContractedWeatherCard(
+                                            weatherForecaster,
+                                            weatherForecaster.time
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -257,7 +286,6 @@ fun MainScreen(
                 }
             }
         }
-    }
 }
 
 // Define a function to get the appropriate icon based on cloud cover percentage
