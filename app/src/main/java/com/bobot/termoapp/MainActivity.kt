@@ -298,8 +298,18 @@ fun getCloudCoverIcon(
 ): Pair<Painter, String> {
     val isNight = isNight(forecastTime)
     val isRaining = isRaining(weatherForecast)
+    val isSnowing = isSnowing(weatherForecast)
 
     return when {
+        // Snowy conditions
+        isSnowing -> {
+            if (isNight) {
+                Pair(painterResource(id = R.drawable.ic_snowy_night), "Snowy night")
+            } else {
+                Pair(painterResource(id = R.drawable.ic_snowy_day), "Snowy day")
+            }
+        }
+
         // Case for less than 25% cloud cover
         cloudCover < 25 -> {
             if (isNight) {
@@ -377,6 +387,12 @@ fun isRaining(weatherForecast: WeatherForecast): Boolean {
     Log.d("Debug", "Precipitation probability: ${weatherForecast.precipitationProbability}")
     // Assuming weatherForecast has a precipitation field which is a percentage
     return weatherForecast.precipitationProbability > 80 // Consider it raining if precipitation is over 80%
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun isSnowing(weatherForecast: WeatherForecast): Boolean {
+    // Assuming weatherForecast has a snowfall field which is a percentage or amount
+    return weatherForecast.snowfall > 0 // Consider it snowing if snowfall is greater than 0
 }
 
 @RequiresApi(Build.VERSION_CODES.O)

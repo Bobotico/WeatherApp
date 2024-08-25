@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.okhttp3)
     implementation(libs.osmdroid.android)
     implementation(libs.osmdroid.wms)
+    implementation(libs.play.services.location)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
