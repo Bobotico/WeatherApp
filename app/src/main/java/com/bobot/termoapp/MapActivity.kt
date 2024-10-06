@@ -1,20 +1,15 @@
 package com.bobot.termoapp
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.util.Log
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,127 +43,93 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
+import androidx.lifecycle.lifecycleScope
 import com.bobot.termoapp.ui.theme.TermoAppTheme
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationCallback
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationResult
-import com.google.android.gms.location.LocationServices
-import com.google.android.gms.location.Priority
-import com.google.android.gms.tasks.Task
+import com.bobot.termoapp.viewmodels.LocationViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
+import org.osmdroid.views.MapController
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.gestures.RotationGestureOverlay
 import java.net.HttpURLConnection
 import java.net.URL
 
-class MapActivity : ComponentActivity() {
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private lateinit var locationCallback: LocationCallback
-    private lateinit var locationRequest: LocationRequest
 
+@AndroidEntryPoint
+class MapActivity : ComponentActivity() {
     private var userMarker: Marker? = null
-    private var mapView: MapView? = null
+    private lateinit var mapView: MapView
+    private lateinit var controller: MapController
+    // Inject the ViewModel using Hilt
+    private val viewModel: LocationViewModel by viewModels()
+
+    private var lastUpdateTime: Long = 0
+    private var isLocationUpdatesInitialized = false
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 1000
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Initialize OSMdroid configuration using the non-deprecated method
+        // Initialize OSMdroid configuration
         val sharedPreferences = getSharedPreferences("osmdroid_prefs", Context.MODE_PRIVATE)
         Configuration.getInstance().load(this, sharedPreferences)
 
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        initializeLocationRequest()
+        // Initialize mapView
+        mapView = MapView(this)
+        controller = mapView.controller as MapController
+        controller.setZoom(15.0)  // Set an initial zoom level
 
-        // Set up location updates
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(p0: LocationResult) {
-                p0.locations.let { locations ->
-                    for (location in locations) {
-                        updateUserMarker(location)
+        // Ensure that the mapView is not null before any operation
+        // Add the map view to your layout (assuming you're using Compose layout)
+        // Only then proceed with location updates
+        viewModel.locationData.observe(this, Observer { location ->
+            location?.let {
+                val latitude = it.latitude
+                val longitude = it.longitude
+                Log.d("LocationActivity", "Updated location: Latitude: $latitude, Longitude: $longitude")
+
+                // Call updateUserMarker directly instead of fetchAndCenterMap
+                updateUserMarker(latitude, longitude)
+            }
+        })
+
+        initializeLocationUpdates()
+        isLocationUpdatesInitialized = true
+    }
+
+    private fun initializeLocationUpdates() {
+        try {
+            viewModel.locationService.startLocationUpdates() // Start location updates
+
+            // Launch a coroutine to throttle updates every 10 seconds
+            lifecycleScope.launch {
+                while (true) {
+                    viewModel.locationService.getLocationData { location ->
+                        location?.let {
+                            setMapLocation(it.latitude, it.longitude)
+                            updateUserMarker(it.latitude, it.longitude)
+                        }
                     }
+                    delay(10_000L) // Delay for 10 seconds (10,000 milliseconds)
                 }
             }
+        } catch (e: Exception) {
+            Log.e("LocationError", "Failed to start location updates", e)
         }
-
-        // Request location permission
-        requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
-    }
-
-    private val requestPermissionLauncher: ActivityResultLauncher<String> = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        if (isGranted) {
-            fetchAndCenterMap()
-            startLocationUpdates() // Start location updates after permission is granted
-        } else {
-            // Permission denied, handle accordingly
-            Toast.makeText(this, "Permission denied. Cannot access location.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    private fun initializeLocationRequest() {
-        locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000)
-            .setMinUpdateIntervalMillis(1000) // 1 second
-            .build()
-    }
-
-    private fun fetchAndCenterMap() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return
-        }
-
-        fusedLocationClient.lastLocation.addOnCompleteListener { task: Task<Location> ->
-            if (task.isSuccessful && task.result != null) {
-                val location = task.result
-                val latitude = location.latitude
-                val longitude = location.longitude
-                setMapLocation(latitude, longitude)
-            } else {
-                // Handle case where location is not available
-                val defaultLatitude = 41.10649299650251
-                val defaultLongitude = 16.877975322937075
-                setMapLocation(defaultLatitude, defaultLongitude)
-            }
-        }
-    }
-
-    private fun startLocationUpdates() {
-        if (ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
     }
 
     private fun setMapLocation(latitude: Double, longitude: Double) {
@@ -177,18 +138,16 @@ class MapActivity : ComponentActivity() {
                 MapScreen(latitude, longitude)
             }
         }
-        mapView?.invalidate()
     }
 
     @Composable
     fun MapScreen(latitude: Double, longitude: Double) {
         val context = LocalContext.current
-
+        var userLocation by remember { mutableStateOf(GeoPoint(latitude, longitude)) }
         var selectedGeoPoint by remember { mutableStateOf<GeoPoint?>(null) }
         var cityName by remember { mutableStateOf<String?>(null) }
         var showAlertDialog by remember { mutableStateOf(false) }
         var showConfirmCard by remember { mutableStateOf(false) }
-        var userLocation by remember { mutableStateOf<GeoPoint?>(null) }
         var userMarker by remember { mutableStateOf<Marker?>(null) }
 
         // Function to fetch city name using reverse geocoding
@@ -217,11 +176,6 @@ class MapActivity : ComponentActivity() {
             }
         }
 
-        // Fetch user location
-        LaunchedEffect(Unit) {
-
-        }
-
         // AlertDialog
         if (showAlertDialog) {
             AlertDialog(
@@ -229,14 +183,10 @@ class MapActivity : ComponentActivity() {
                 title = { Text("Confirm Location") },
                 text = {
                     selectedGeoPoint?.let {
-                        // Format latitude and longitude to 6 decimal places
-                        /*val formattedLatitude = "%.6f".format(it.latitude)
-                        val formattedLongitude = "%.6f".format(it.longitude)*/
-
-                        Column (
+                        Column(
                             modifier = Modifier.fillMaxWidth(),
                             verticalArrangement = Arrangement.spacedBy(0.dp)
-                        ){
+                        ) {
                             Text(
                                 text = "Are you sure you want to select this location?\n",
                                 style = MaterialTheme.typography.bodyMedium
@@ -249,22 +199,6 @@ class MapActivity : ComponentActivity() {
                                     text = "$cityName \n",
                                     style = MaterialTheme.typography.titleLarge.copy(MaterialTheme.colorScheme.primary)
                                 )
-                                /*Text(
-                                    text = "Latitude: ",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = "${formattedLatitude}\n",
-                                    style = MaterialTheme.typography.bodyMedium.copy(MaterialTheme.colorScheme.primary)
-                                )
-                                Text(
-                                    text = "Longitude: ",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                                Text(
-                                    text = formattedLongitude,
-                                    style = MaterialTheme.typography.bodyMedium.copy(MaterialTheme.colorScheme.primary)
-                                )*/
                             }
                         }
                     }
@@ -298,31 +232,21 @@ class MapActivity : ComponentActivity() {
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 factory = { ctx ->
-                    MapView(ctx).apply {
+                    mapView.apply {
                         setMultiTouchControls(true)
+                        setBuiltInZoomControls(false)
+                        controller.setZoom(21.0) // Set default zoom level to 21
 
-                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                            fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                                location?.let {
-                                    userLocation = GeoPoint(latitude, longitude)
-                                    userMarker = Marker(this).apply {
-                                        position = userLocation
-                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        icon = ContextCompat.getDrawable(ctx, R.drawable.ic_user_location_marker)
-                                        title = "Your Location"
-                                    }
-                                    overlays.add(userMarker)
-                                    controller.setCenter(userLocation)
-                                }
-                            }
+                        userMarker = Marker(this).apply {
+                            position = userLocation
+                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                            icon = ContextCompat.getDrawable(context, R.drawable.ic_user_location_marker)
+                            title = "Your Location"
                         }
 
-                        controller.setZoom(21.0) // Set default zoom level to 18
-
                         // Set minimum and maximum zoom levels
-                        minZoomLevel = 8.0
-                        maxZoomLevel = 25.0
-
+                        minZoomLevel = 3.0
+                        maxZoomLevel = 23.0
                         zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
 
                         // Handle long-tap to get latitude and longitude
@@ -334,7 +258,7 @@ class MapActivity : ComponentActivity() {
                                 p?.let {
                                     // Clear existing markers
                                     overlays.filterIsInstance<Marker>().forEach { marker ->
-                                        if (marker != userMarker) {
+                                        if (marker.title != userMarker!!.title) {
                                             overlays.remove(marker)
                                         }
                                     }
@@ -363,7 +287,6 @@ class MapActivity : ComponentActivity() {
                                         val vibrationEffect = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                                             VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
                                         } else {
-                                            @Suppress("DEPRECATION")
                                             VibrationEffect.createOneShot(100, VibrationEffect.DEFAULT_AMPLITUDE)
                                         }
                                         vibrator.vibrate(vibrationEffect)
@@ -373,6 +296,10 @@ class MapActivity : ComponentActivity() {
                             }
                         })
                         overlays.add(mapEventsOverlay)
+
+                        val rotationGestureOverlay = RotationGestureOverlay(mapView)
+                        rotationGestureOverlay.isEnabled = true
+                        overlays.add(rotationGestureOverlay)
                     }
                 },
                 modifier = Modifier.fillMaxSize()
@@ -463,14 +390,54 @@ class MapActivity : ComponentActivity() {
         }
     }
 
-    private fun updateUserMarker(location: Location) {
-        val newLocation = GeoPoint(location.latitude, location.longitude)
-        if (userMarker != null) {
-            userMarker?.position = newLocation
-            mapView?.controller?.setCenter(newLocation)
-            mapView?.invalidate()
-        } else {
-            Log.e("MapActivity", "User marker is not initialized")
+    private fun updateUserMarker(latitude: Double, longitude: Double) {
+        val userLocation = GeoPoint(latitude, longitude)
+
+        // Check if the marker should be updated (every 10 seconds)
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastUpdateTime < 10_000) {
+            return // Exit if the update is called within 10 seconds
         }
+        lastUpdateTime = currentTime // Update the last update time
+
+        // Ensure mapView is initialized before adding the marker
+        // Use the same mapView instance from the AndroidView
+        if (::mapView.isInitialized) {
+            if (userMarker == null) {
+                userMarker = Marker(mapView).apply {
+                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                    icon = ContextCompat.getDrawable(this@MapActivity, R.drawable.ic_user_location_marker)
+                    title = "Your Location"
+                    position = userLocation
+                    mapView.overlays.add(this)
+                }
+            } else {
+                userMarker?.position = userLocation
+            }
+
+            // Log for debugging
+            Log.d("MapActivity", "Updating marker to: Latitude $latitude, Longitude $longitude")
+
+            // Update marker position and center the map
+            controller.setCenter(userLocation)
+            mapView.invalidate()
+        } else {
+            Log.e("MapActivity", "mapView is not initialized, cannot update marker.")
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mapView.onPause()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        mapView.onResume()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mapView.onDetach()
     }
 }

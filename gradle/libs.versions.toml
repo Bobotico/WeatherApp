@@ -5,15 +5,15 @@ coreKtx = "1.13.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
-lifecycleRuntimeKtx = "2.8.4"
-activityCompose = "1.9.1"
-composeBom = "2024.08.00"
+lifecycleRuntimeKtx = "2.8.6"
+activityCompose = "1.9.2"
+composeBom = "2024.09.02"
 
-daggerHilt = "2.49"
+dagger-hilt = "2.52"
 retrofit = "2.11.0"
 retrofitGson = "2.9.0"
 okhttp3 = "5.0.0-alpha.2"
-osmdroid = "6.1.14"
+osmdroid = "6.1.20"
 playServicesLocation = "21.3.0"
 
 [libraries]
@@ -32,7 +32,8 @@ androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-man
 androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 
-dagger = { group = "com.google.dagger", name = "hilt-android", version.ref = "daggerHilt" }
+dagger-hilt = { group = "com.google.dagger", name = "hilt-android", version.ref = "dagger-hilt" }
+dagger-hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "dagger-hilt" }
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofitGson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofitGson" }
 okhttp3 = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp3" }
@@ -41,6 +42,7 @@ osmdroid-wms = { group = "org.osmdroid", name = "osmdroid-wms", version.ref = "o
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
 
 [plugins]
+dagger-hilt = { id = "com.google.dagger.hilt.android", version.ref = "dagger-hilt" }
 android-application = { id = "com.android.application", version.ref = "agp" }
 jetbrains-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 

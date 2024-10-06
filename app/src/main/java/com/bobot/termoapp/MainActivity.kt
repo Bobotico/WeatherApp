@@ -303,10 +303,24 @@ fun getCloudCoverIcon(
     return when {
         // Snowy conditions
         isSnowing -> {
-            if (isNight) {
-                Pair(painterResource(id = R.drawable.ic_snowy_night), "Snowy night")
+            if (cloudCover < 25) {
+                if (isNight) {
+                    Pair(painterResource(id = R.drawable.ic_partly_cloudy_snowy_night), "Partly cloudy with snow at night")
+                } else {
+                    Pair(painterResource(id = R.drawable.ic_partly_cloudy_snowy), "Partly cloudy with snow")
+                }
+            } else if (cloudCover in 25..50) {
+                if (isNight) {
+                    Pair(painterResource(id = R.drawable.ic_cloudy_snowy), "Cloudy with snow at night")
+                } else {
+                    Pair(painterResource(id = R.drawable.ic_cloudy_snowy), "Cloudy with snow")
+                }
             } else {
-                Pair(painterResource(id = R.drawable.ic_snowy_day), "Snowy day")
+                if (isNight) {
+                    Pair(painterResource(id = R.drawable.ic_fully_cloudy_snowy), "Fully cloudy with snow at night")
+                } else {
+                    Pair(painterResource(id = R.drawable.ic_fully_cloudy_snowy), "Fully cloudy with snow")
+                }
             }
         }
 
@@ -333,7 +347,8 @@ fun getCloudCoverIcon(
                         "Partly cloudy with rain"
                     )
                 }
-            } else {
+            }
+            else {
                 if (isNight) {
                     Pair(
                         painterResource(id = R.drawable.ic_partly_cloudy_night),
@@ -391,6 +406,7 @@ fun isRaining(weatherForecast: WeatherForecast): Boolean {
 
 @RequiresApi(Build.VERSION_CODES.O)
 fun isSnowing(weatherForecast: WeatherForecast): Boolean {
+    Log.d("Debug", "Snow probability: ${weatherForecast.snowfall}")
     // Assuming weatherForecast has a snowfall field which is a percentage or amount
     return weatherForecast.snowfall > 0 // Consider it snowing if snowfall is greater than 0
 }

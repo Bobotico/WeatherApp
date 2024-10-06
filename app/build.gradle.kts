@@ -1,7 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
+    kotlin("kapt")
+    alias(libs.plugins.dagger.hilt)
 }
+
+apply(plugin = "dagger.hilt.android.plugin")
 
 android {
     namespace = "com.bobot.termoapp"
@@ -50,7 +54,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -60,7 +63,8 @@ dependencies {
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
 
-    implementation(libs.dagger)
+    implementation(libs.dagger.hilt)
+    kapt(libs.dagger.hilt.compiler)
     implementation(libs.retrofit)
     implementation(libs.retrofitGson)
     implementation(libs.okhttp3)
@@ -75,4 +79,11 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+}
+
+kapt {
+    correctErrorTypes = true
+    arguments {
+        arg("dagger.hilt.disableModulesHaveInstallInCheck", "true")
+    }
 }
