@@ -9,16 +9,17 @@ data class WeatherResponse(
 
 data class HourlyData(
     val time: List<String>,
-    val temperature2m: List<Double>,
-    val relativeHumidity2m: List<Int>,
-    val precipitationProbability: List<Int>,
+    val temperature_2m: List<Double>,
+    val relative_humidity_2m: List<Int>,
+    val precipitation_probability: List<Int>,
     val snowfall: List<Int>,
-    val windSpeed10m: List<Float>,
-    val cloudCover: List<Int>
+    val wind_speed_10m: List<Float>,
+    val cloud_cover: List<Int>
 )
 
 data class DailyData(
     val time: List<String>,
-    val temperature2mMax: List<Double>,
-    val temperature2mMin: List<Double>
+    val temperature_2m_max: List<Double>,
+    val temperature_2m_min: List<Double>
+
 )

@@ -81,19 +81,19 @@ class WeatherViewModel : ViewModel() {
 
                         // Map the hourly raw data from the API response into a list of WeatherForecast objects.
                         // This combines time, temperature, and other hourly parameters.
-                        val forecasts = hourlyData.time.zip(hourlyData.temperature2m)
+                        val forecasts = hourlyData.time.zip(hourlyData.temperature_2m)
                             .mapIndexed { index, (time, temperature) ->
                                 WeatherForecast(
                                     date = time.substring(0, 10), // Extract date part (YYYY-MM-DD)
                                     time = time.substring(11, 16), // Extract time part (HH:MM)
                                     temperature = "${temperature}°C", // Format temperature with unit
-                                    minTemp = "${hourlyData.temperature2m.minOrNull()}°C", // Get overall min temp
-                                    maxTemp = "${hourlyData.temperature2m.maxOrNull()}°C", // Get overall max temp
-                                    humidity = "${hourlyData.relativeHumidity2m.getOrNull(index) ?: "N/A"} %", // Get humidity or "N/A"
-                                    precipitationProbability = hourlyData.precipitationProbability.getOrNull(index) ?: 0, // Get precipitation probability or 0
+                                    minTemp = "${hourlyData.temperature_2m.minOrNull()}°C", // Get overall min temp
+                                    maxTemp = "${hourlyData.temperature_2m.maxOrNull()}°C", // Get overall max temp
+                                    humidity = "${hourlyData.relative_humidity_2m.getOrNull(index) ?: "N/A"} %", // Get humidity or "N/A"
+                                    precipitationProbability = hourlyData.precipitation_probability.getOrNull(index) ?: 0, // Get precipitation probability or 0
                                     snowfall = hourlyData.snowfall.getOrNull(index) ?: 0, // Get snowfall or 0
-                                    windSpeed = "${hourlyData.windSpeed10m.getOrNull(index) ?: "N/A"} km/h", // Get wind speed or "N/A"
-                                    cloudCover = "${hourlyData.cloudCover.getOrNull(index) ?: "N/A"}" // Get cloud cover or "N/A"
+                                    windSpeed = "${hourlyData.wind_speed_10m.getOrNull(index) ?: "N/A"} km/h", // Get wind speed or "N/A"
+                                    cloudCover = "${hourlyData.cloud_cover.getOrNull(index) ?: "N/A"}" // Get cloud cover or "N/A"
                                 )
                             }
 
