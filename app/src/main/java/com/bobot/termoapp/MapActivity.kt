@@ -5,12 +5,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
 import android.os.Vibrator
-import android.provider.Settings
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -28,10 +26,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -62,7 +57,7 @@ import com.bobot.termoapp.ui.theme.TermoAppTheme
 import com.bobot.termoapp.viewmodels.LocationViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay // Import for delay
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -81,7 +76,6 @@ import java.net.HttpURLConnection
 import java.net.URL
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.core.graphics.drawable.DrawableCompat
 import androidx.lifecycle.lifecycleScope
@@ -109,10 +103,6 @@ class MapActivity : ComponentActivity() {
                 // and directing the user to app settings.
             }
         }
-
-    companion object {
-        private const val LOCATION_PERMISSION_REQUEST_CODE = 1000 // Not strictly needed with ActivityResultContracts
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -153,8 +143,6 @@ class MapActivity : ComponentActivity() {
 
         // State to track if the map should automatically follow the user's location
         var isMapFollowingUser by remember { mutableStateOf(true) }
-        // Get the MaterialTheme primary color once within the @Composable scope
-        val primaryColor = MaterialTheme.colorScheme.primary.toArgb() // MOVED HERE
 
         // NEW: State to temporarily ignore user input during programmatic map movements
         var isProgrammaticMapMove by remember { mutableStateOf(false) }
@@ -258,7 +246,7 @@ class MapActivity : ComponentActivity() {
         Box(modifier = Modifier.fillMaxSize()) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
-                factory = { ctx ->
+                factory = {
                     mapView.apply {
                         setMultiTouchControls(true)
                         setBuiltInZoomControls(false)
@@ -480,7 +468,7 @@ class MapActivity : ComponentActivity() {
                         .shadow(8.dp),
                     elevation = CardDefaults.cardElevation(8.dp)
                 ) {
-                    selectedGeoPoint?.let { geoPoint ->
+                    selectedGeoPoint?.let {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -542,20 +530,5 @@ class MapActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // No explicit calls to mapInstance.onPause() here as DisposableEffect handles it.
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // No explicit calls to mapInstance.onResume() here as DisposableEffect handles it.
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        // No explicit calls to mapInstance.onDetach() here as DisposableEffect handles it.
     }
 }
