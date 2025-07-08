@@ -18,6 +18,8 @@ Built with **Jetpack Compose** and **OpenStreetMap**, the app offers a smooth, e
 - Automatically centers the map on the user's current location.
 - Dedicated recenter button with a **visual indicator** showing whether tracking is active or not.
 
+---
+
 ### 🗺️ Advanced map interaction
 
 - Full gesture support:  
@@ -28,13 +30,19 @@ Built with **Jetpack Compose** and **OpenStreetMap**, the app offers a smooth, e
 - Adds a **custom marker** on long-press location.
 - **Haptic feedback** (vibration) on long press.
 
+---
+
 ### 🌐 Real-time weather with Open-Meteo
 
 - Requests accurate weather data based on the **latitude and longitude** of the selected point.
 
+---
+
 ### ⚠️ Position confirmation
 
 - A confirmation **alert dialog** appears after long-press to avoid accidental selections.
+
+---
 
 ### 🧭 Detailed weather screen
 
