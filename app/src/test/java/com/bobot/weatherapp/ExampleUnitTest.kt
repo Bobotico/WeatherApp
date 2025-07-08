@@ -1,4 +1,4 @@
-package com.bobot.termoapp
+package com.bobot.weatherapp
 
 import org.junit.Test
 

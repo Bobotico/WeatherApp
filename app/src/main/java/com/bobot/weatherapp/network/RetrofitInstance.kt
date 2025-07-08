@@ -1,8 +1,8 @@
-package com.bobot.termoapp.network
+package com.bobot.weatherapp.network
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import com.bobot.termoapp.apiservice.WeatherApiService
+import com.bobot.weatherapp.apiservice.WeatherApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 

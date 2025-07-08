@@ -1,6 +1,6 @@
-package com.bobot.termoapp.apiservice
+package com.bobot.weatherapp.apiservice
 
-import com.bobot.termoapp.data.model.WeatherResponse
+import com.bobot.weatherapp.data.model.WeatherResponse
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query

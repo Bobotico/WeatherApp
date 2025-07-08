@@ -1,4 +1,4 @@
-package com.bobot.termoapp
+package com.bobot.weatherapp
 
 import android.Manifest
 import android.content.Context
@@ -53,8 +53,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.bobot.termoapp.ui.theme.TermoAppTheme
-import com.bobot.termoapp.viewmodels.LocationViewModel
+import com.bobot.weatherapp.ui.theme.WeatherAppTheme
+import com.bobot.weatherapp.viewmodels.LocationViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -123,7 +123,7 @@ class MapActivity : ComponentActivity() {
 
         // Set the content of the activity using Jetpack Compose
         setContent {
-            TermoAppTheme {
+            WeatherAppTheme {
                 // Observe the location data from the ViewModel
                 val currentLocation by viewModel.locationData.observeAsState(initial = null)
 
@@ -252,7 +252,7 @@ class MapActivity : ComponentActivity() {
                         setBuiltInZoomControls(false)
                         setZoomLevel(18.0)
 
-                        minZoomLevel = 3.0
+                        minZoomLevel = 8.0
                         maxZoomLevel = 23.0
                         zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
 
@@ -334,7 +334,9 @@ class MapActivity : ComponentActivity() {
                         if (existingUserMarker == null) {
                             existingUserMarker = Marker(mapView).apply {
                                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                icon = ContextCompat.getDrawable(context, R.drawable.ic_user_location_marker)
+                                icon = ContextCompat.getDrawable(context,
+                                    R.drawable.ic_user_location_marker
+                                )
                                 title = "Your Location"
                             }
                             mapView.overlays.add(existingUserMarker)
@@ -347,7 +349,9 @@ class MapActivity : ComponentActivity() {
 
                     selectedGeoPoint?.let { geoPoint ->
                         // Get the drawable (which is now configured with black and white paths)
-                        val drawable = ContextCompat.getDrawable(context, R.drawable.ic_picking_marker)
+                        val drawable = ContextCompat.getDrawable(context,
+                            R.drawable.ic_picking_marker
+                        )
 
                         drawable?.let {
                             val wrappedDrawable = DrawableCompat.wrap(it).mutate()

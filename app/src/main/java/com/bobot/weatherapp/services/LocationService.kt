@@ -1,4 +1,4 @@
-package com.bobot.termoapp.services
+package com.bobot.weatherapp.services
 
 import android.Manifest
 import android.annotation.SuppressLint

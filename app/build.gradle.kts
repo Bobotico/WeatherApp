@@ -8,11 +8,11 @@ plugins {
 apply(plugin = "dagger.hilt.android.plugin")
 
 android {
-    namespace = "com.bobot.termoapp"
+    namespace = "com.bobot.weatherapp"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.bobot.termoapp"
+        applicationId = "com.bobot.weatherapp"
         minSdk = 24
         targetSdk = 34
         versionCode = 1

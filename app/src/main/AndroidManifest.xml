@@ -8,7 +8,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:name=".TermoApp"
+        android:name="com.bobot.weatherapp.WeatherApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -16,16 +16,16 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/weather_app_icon"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TermoApp"
+        android:theme="@style/Theme.WeatherApp"
         tools:targetApi="31">
         <meta-data
             android:name="org.osmdroid.config"
             android:resource="@xml/osmdroid_config" />
         <activity
-            android:name=".MapActivity"
+            android:name="com.bobot.weatherapp.MapActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.TermoApp">
+            android:theme="@style/Theme.WeatherApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -34,7 +34,7 @@
         </activity>
 
         <!-- MainActivity is the main screen after selecting a location -->
-        <activity android:name=".MainActivity" />
+        <activity android:name="com.bobot.weatherapp.MainActivity" />
     </application>
 
 </manifest>

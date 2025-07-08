@@ -1,4 +1,4 @@
-package com.bobot.termoapp.data.model
+package com.bobot.weatherapp.data.model
 
 data class WeatherResponse(
     val latitude: Double,

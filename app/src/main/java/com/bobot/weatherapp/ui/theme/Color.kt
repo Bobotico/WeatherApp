@@ -1,4 +1,4 @@
-package com.bobot.termoapp.ui.theme
+package com.bobot.weatherapp.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

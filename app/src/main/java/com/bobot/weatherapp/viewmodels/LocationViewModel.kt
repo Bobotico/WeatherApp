@@ -1,10 +1,10 @@
-package com.bobot.termoapp.viewmodels
+package com.bobot.weatherapp.viewmodels
 
 import android.location.Location
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bobot.termoapp.services.LocationService
+import com.bobot.weatherapp.services.LocationService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject

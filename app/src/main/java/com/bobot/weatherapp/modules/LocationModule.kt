@@ -1,7 +1,7 @@
-package com.bobot.termoapp.modules
+package com.bobot.weatherapp.modules
 
 import android.content.Context
-import com.bobot.termoapp.services.LocationService
+import com.bobot.weatherapp.services.LocationService
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import dagger.Module

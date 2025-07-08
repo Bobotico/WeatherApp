@@ -1,9 +1,9 @@
-package com.bobot.termoapp
+package com.bobot.weatherapp
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class TermoApp : Application() {
+class WeatherApp : Application() {
     // You can override other Application methods if needed
 }

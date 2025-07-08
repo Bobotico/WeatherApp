@@ -1,4 +1,4 @@
-package com.bobot.termoapp
+package com.bobot.weatherapp
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -42,9 +42,9 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModelProvider
-import com.bobot.termoapp.ui.theme.TermoAppTheme
-import com.bobot.termoapp.viewmodels.WeatherForecast
-import com.bobot.termoapp.viewmodels.WeatherViewModel
+import com.bobot.weatherapp.ui.theme.WeatherAppTheme
+import com.bobot.weatherapp.viewmodels.WeatherForecast
+import com.bobot.weatherapp.viewmodels.WeatherViewModel
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -88,7 +88,7 @@ class MainActivity : ComponentActivity() {
         val cityName = intent.getStringExtra("cityName") ?: "Unknown City"
 
         setContent {
-            TermoAppTheme {
+            WeatherAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) {
                     MainScreen(this@MainActivity, cityName, latitude, longitude)
                 }
@@ -790,7 +790,7 @@ fun MainScreenPreview() {
     val latitude = 41.10648753859573
     val longitude = 16.8779752411189
 
-    TermoAppTheme {
+    WeatherAppTheme {
         MainScreen(MainActivity(), cityName, latitude, longitude)
     }
 }

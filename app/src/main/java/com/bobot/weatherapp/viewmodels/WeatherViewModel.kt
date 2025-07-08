@@ -1,11 +1,11 @@
-package com.bobot.termoapp.viewmodels
+package com.bobot.weatherapp.viewmodels
 
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bobot.termoapp.data.model.WeatherResponse
-import com.bobot.termoapp.network.RetrofitInstance
+import com.bobot.weatherapp.data.model.WeatherResponse
+import com.bobot.weatherapp.network.RetrofitInstance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -15,7 +15,6 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import kotlin.math.absoluteValue
-
 
 /**
  * ViewModel for managing temperature and weather data.
